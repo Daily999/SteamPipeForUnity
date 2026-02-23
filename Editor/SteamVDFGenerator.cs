@@ -18,7 +18,12 @@ namespace SteamPipeForUnity.Editor
             sb.AppendLine("\"AppBuild\"");
             sb.AppendLine("{");
             sb.AppendLine($"    \"AppID\" \"{config.appID}\"");
-            sb.AppendLine($"    \"Desc\" \"{EscapeVDFString(config.buildDescription)}\"");
+            
+            // 在說明欄加上 <Tool Upload> 標示
+            string description = string.IsNullOrWhiteSpace(config.buildDescription) 
+                ? "<Tool Upload>" 
+                : $"<Tool Upload> {config.buildDescription}";
+            sb.AppendLine($"    \"Desc\" \"{EscapeVDFString(description)}\"");
             
             // 如果設定了 setLiveBranch，則自動釋出到該分支
             // 但 default 分支永遠不自動釋出（安全機制）
