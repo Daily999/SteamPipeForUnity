@@ -2,16 +2,22 @@
   "name": "studio.daily.steampipeforunity",
   "version": "0.1.1",
   "displayName": "SteamPipe For Unity",
+  "description": "Unity editor tool for uploading game builds to Steam via SteamCMD. Features multi-platform depot management, Steam DRM wrapping, credential encryption, and real-time upload progress. (AI-assisted project)",
   "unity": "2021.3",
   "dependencies": {
   },
   "keywords": [
-        "daily",
-        "steampipe"
+    "daily",
+    "steampipe",
+    "steam",
+    "steamcmd",
+    "upload",
+    "deployment",
+    "steamworks",
+    "drm"
   ],
   "author": {
     "name": "Daily",
     "email": "zxc99707@gmail.com"
-  },
-  "description": ""
+  }
 }

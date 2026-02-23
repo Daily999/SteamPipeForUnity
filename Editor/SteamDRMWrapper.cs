@@ -63,16 +63,18 @@ namespace SteamPipeForUnity.Editor
             string outputFileName = Path.GetFileName(depot.executableFileName);
             string outputFilePath = Path.Combine(outputDir, outputFileName);
 
-            // 建立 SKIP_UPLOAD 資料夾
+            // 確保 SKIP_UPLOAD 資料夾存在（用於備份原始執行檔）
             string skipUploadDir = Path.Combine(depot.contentRoot, "SKIP_UPLOAD");
             if (!Directory.Exists(skipUploadDir))
             {
                 Directory.CreateDirectory(skipUploadDir);
+                Debug.Log($"[DRM] 建立 SKIP_UPLOAD 備份資料夾: {skipUploadDir}");
             }
 
             Debug.Log($"[DRM] 開始包裝執行檔: {depot.platformLabel}");
             Debug.Log($"[DRM] 輸入檔案: {inputFilePath}");
             Debug.Log($"[DRM] 輸出檔案: {outputFilePath}");
+            Debug.Log($"[DRM] 備份位置: {skipUploadDir}");
 
             // 組合 SteamCMD 命令
             string loginCommand = string.IsNullOrWhiteSpace(steamGuardCode)

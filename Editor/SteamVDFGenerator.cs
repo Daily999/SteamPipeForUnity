@@ -78,6 +78,14 @@ namespace SteamPipeForUnity.Editor
         /// </summary>
         private static string GenerateDepotBuildVDF(DepotConfig depot)
         {
+            // 確保 SKIP_UPLOAD 資料夾存在（總是建立，避免 VDF 錯誤）
+            string skipUploadDir = Path.Combine(depot.contentRoot, "SKIP_UPLOAD");
+            if (!Directory.Exists(skipUploadDir))
+            {
+                Directory.CreateDirectory(skipUploadDir);
+                Debug.Log($"[VDF] 建立 SKIP_UPLOAD 資料夾: {skipUploadDir}");
+            }
+            
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("\"DepotBuild\"");
             sb.AppendLine("{");
@@ -94,20 +102,15 @@ namespace SteamPipeForUnity.Editor
 
             // 排除規則 - 使用編號的鍵值對格式
             // 每個排除規則需要有獨立的編號區塊
-            bool hasExclusions = false;
             int exclusionIndex = 1;
             
-            // 只有啟用 DRM 時，才排除 SKIP_UPLOAD 資料夾（用於 DRM 原始檔案）
-            if (depot.enableDRM)
-            {
-                sb.AppendLine($"    \"FileExclusion\" \"{exclusionIndex}\"");
-                sb.AppendLine("    {");
-                sb.AppendLine("        \"LocalPath\" \"*\"");
-                sb.AppendLine("        \"FilePattern\" \"SKIP_UPLOAD\\*\"");
-                sb.AppendLine("    }");
-                exclusionIndex++;
-                hasExclusions = true;
-            }
+            // 總是排除 SKIP_UPLOAD 資料夾（用於 DRM 原始檔案或其他不需上傳的檔案）
+            sb.AppendLine($"    \"FileExclusion\" \"{exclusionIndex}\"");
+            sb.AppendLine("    {");
+            sb.AppendLine("        \"LocalPath\" \"*\"");
+            sb.AppendLine("        \"FilePattern\" \"SKIP_UPLOAD\\*\"");
+            sb.AppendLine("    }");
+            exclusionIndex++;
             
             // 加入使用者自訂的排除規則
             if (depot.excludePatterns != null && depot.excludePatterns.Length > 0)
@@ -122,7 +125,6 @@ namespace SteamPipeForUnity.Editor
                         sb.AppendLine($"        \"FilePattern\" \"{EscapeVDFString(pattern)}\"");
                         sb.AppendLine("    }");
                         exclusionIndex++;
-                        hasExclusions = true;
                     }
                 }
             }
