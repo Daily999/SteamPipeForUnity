@@ -145,5 +145,5 @@ MIT License
 ---
 
 **版本**: 0.1.1  
-**作者**: Daily Studio  
+**作者**: Daily  
 **Email**: zxc99707@gmail.com
