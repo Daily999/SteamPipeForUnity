@@ -1,0 +1,19 @@
+{
+  "name": "studio.daily.steampipeforunity",
+  "version": "0.1.0",
+  "displayName": "SteamPipe For Unity",
+  "unity": "2021.3",
+  "dependencies": {
+  },
+  "keywords": [
+        "daily",
+        "gameplay",
+        "framework",
+        "steampipe"
+  ],
+  "author": {
+    "name": "Daily",
+    "email": "zxc99707@gmail.com"
+  },
+  "description": ""
+}
