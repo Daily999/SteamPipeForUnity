@@ -218,6 +218,15 @@ namespace SteamPipeForUnity.Editor
                 StartUpload();
             }
 
+            EditorGUILayout.Space(3);
+
+            EditorGUILayout.HelpBox("測試上傳：使用 SteamCMD Preview 模式掃描檔案清單，不會實際上傳到 Steam。可用於驗證配置與網路連線是否正常。", MessageType.Info);
+
+            if (GUILayout.Button("測試上傳（Preview 模式）", GUILayout.Height(30)))
+            {
+                StartUpload(preview: true);
+            }
+
             GUI.enabled = true;
 
             EditorGUILayout.EndVertical();
@@ -287,7 +296,7 @@ namespace SteamPipeForUnity.Editor
             }
         }
 
-        private void StartUpload()
+        private void StartUpload(bool preview = false)
         {
             if (currentConfig == null)
             {
@@ -317,6 +326,32 @@ namespace SteamPipeForUnity.Editor
             {
                 string errorMessage = "無法開始上傳:\n\n" + string.Join("\n", errors);
                 EditorUtility.DisplayDialog("錯誤", errorMessage, "確定");
+                return;
+            }
+
+            if (preview)
+            {
+                // 測試模式確認對話框
+                string previewMessage = $"將以 Preview 模式（測試）執行 SteamCMD。\n\n" +
+                                        $"App ID: {currentConfig.appID}\n" +
+                                        $"Depots: {currentConfig.depots.Count}\n\n" +
+                                        $"此操作只會掃描檔案清單，不會實際上傳任何內容到 Steam。";
+
+                if (EditorUtility.DisplayDialog("確認測試上傳", previewMessage, "開始測試", "取消"))
+                {
+                    uploadExecutor.StartUpload(steamCMDManager, credentialManager, currentConfig, (success, message) =>
+                    {
+                        if (success)
+                        {
+                            EditorUtility.DisplayDialog("測試完成", message, "確定");
+                        }
+                        else
+                        {
+                            EditorUtility.DisplayDialog("測試失敗", $"測試上傳失敗:\n{message}", "確定");
+                        }
+                    }, preview: true);
+                }
+
                 return;
             }
 

@@ -1,3 +1,4 @@
+
 using System.IO;
 using System.Text;
 using UnityEngine;
@@ -12,25 +13,30 @@ namespace SteamPipeForUnity.Editor
         /// <summary>
         /// 生成 app_build VDF 檔案
         /// </summary>
-        public static string GenerateAppBuildVDF(SteamBuildConfig config, out string vdfPath)
+        /// <param name="preview">設為 true 時只掃描檔案清單、不實際上傳（測試模式）</param>
+        public static string GenerateAppBuildVDF(SteamBuildConfig config, out string vdfPath, bool preview = false)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("\"AppBuild\"");
             sb.AppendLine("{");
             sb.AppendLine($"    \"AppID\" \"{config.appID}\"");
-            
-            // 在說明欄加上 <Tool Upload> 標示
-            string description = string.IsNullOrWhiteSpace(config.buildDescription) 
-                ? "<Tool Upload>" 
-                : $"<Tool Upload> {config.buildDescription}";
+
+            // 在說明欄加上上傳類型標示
+            string uploadTag = preview ? "<Test Upload>" : "<Tool Upload>";
+            string description = string.IsNullOrWhiteSpace(config.buildDescription)
+                ? uploadTag
+                : $"{uploadTag} {config.buildDescription}";
             sb.AppendLine($"    \"Desc\" \"{EscapeVDFString(description)}\"");
-            
-            // 如果設定了 setLiveBranch，則自動釋出到該分支
-            // 但 default 分支永遠不自動釋出（安全機制）
+
+            // 測試模式：只掃描不上傳
+            if (preview)
+            {
+                sb.AppendLine($"    \"Preview\" \"1\"");
+            }
             if (!string.IsNullOrWhiteSpace(config.setLiveBranch))
             {
                 string branchName = config.setLiveBranch.Trim().ToLower();
-                
+
                 if (branchName == "default" || branchName == "")
                 {
                     Debug.LogWarning($"[Steam] ⚠️ 安全警告：'default' 分支不會自動釋出，需在 Steamworks 網站手動設定。");
@@ -44,14 +50,14 @@ namespace SteamPipeForUnity.Editor
 
             sb.AppendLine($"    \"ContentRoot\" \"\""); // 使用空字串，由各 depot 指定
             sb.AppendLine($"    \"BuildOutput\" \"{EscapeVDFString(GetBuildOutputPath())}\"");
-            
+
             sb.AppendLine("    \"Depots\"");
             sb.AppendLine("    {");
 
             foreach (var depot in config.depots)
             {
                 if (depot == null) continue;
-                
+
                 string depotVDFPath = GenerateDepotBuildVDF(depot);
                 sb.AppendLine($"        \"{depot.depotID}\" \"{EscapeVDFString(depotVDFPath)}\"");
             }
@@ -85,7 +91,7 @@ namespace SteamPipeForUnity.Editor
                 Directory.CreateDirectory(skipUploadDir);
                 Debug.Log($"[VDF] 建立 SKIP_UPLOAD 資料夾: {skipUploadDir}");
             }
-            
+
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("\"DepotBuild\"");
             sb.AppendLine("{");
@@ -100,18 +106,12 @@ namespace SteamPipeForUnity.Editor
             sb.AppendLine("        \"Recursive\" \"1\"");
             sb.AppendLine("    }");
 
-            // 排除規則 - 使用編號的鍵值對格式
-            // 每個排除規則需要有獨立的編號區塊
-            int exclusionIndex = 1;
-            
+            // 排除規則 - 每個規則是獨立的 "FileExclusion" "pattern" key-value pair
+            // SteamCMD VDF 允許相同 key 出現多次
+
             // 總是排除 SKIP_UPLOAD 資料夾（用於 DRM 原始檔案或其他不需上傳的檔案）
-            sb.AppendLine($"    \"FileExclusion\" \"{exclusionIndex}\"");
-            sb.AppendLine("    {");
-            sb.AppendLine("        \"LocalPath\" \"*\"");
-            sb.AppendLine("        \"FilePattern\" \"SKIP_UPLOAD\\*\"");
-            sb.AppendLine("    }");
-            exclusionIndex++;
-            
+            sb.AppendLine("    \"FileExclusion\" \"SKIP_UPLOAD/*\"");
+
             // 加入使用者自訂的排除規則
             if (depot.excludePatterns != null && depot.excludePatterns.Length > 0)
             {
@@ -119,12 +119,7 @@ namespace SteamPipeForUnity.Editor
                 {
                     if (!string.IsNullOrWhiteSpace(pattern))
                     {
-                        sb.AppendLine($"    \"FileExclusion\" \"{exclusionIndex}\"");
-                        sb.AppendLine("    {");
-                        sb.AppendLine("        \"LocalPath\" \"*\"");
-                        sb.AppendLine($"        \"FilePattern\" \"{EscapeVDFString(pattern)}\"");
-                        sb.AppendLine("    }");
-                        exclusionIndex++;
+                        sb.AppendLine($"    \"FileExclusion\" \"{EscapeVDFString(pattern)}\"");
                     }
                 }
             }

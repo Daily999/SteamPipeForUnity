@@ -21,8 +21,8 @@ namespace SteamPipeForUnity.Editor
         public float UploadProgress => uploadProgress;
         public string UploadStatus => uploadStatus;
 
-        public void StartUpload(SteamCMDManager steamCMDManager, SteamCredentialManager credentialManager, 
-            SteamBuildConfig config, Action<bool, string> onComplete)
+        public void StartUpload(SteamCMDManager steamCMDManager, SteamCredentialManager credentialManager,
+            SteamBuildConfig config, Action<bool, string> onComplete, bool preview = false)
         {
             if (isUploading)
             {
@@ -51,7 +51,7 @@ namespace SteamPipeForUnity.Editor
 
             isUploading = true;
             uploadProgress = 0f;
-            uploadStatus = "準備上傳...";
+            uploadStatus = preview ? "準備測試上傳（不會實際上傳）..." : "準備上傳...";
 
             // 取得登入憑證
             string username = credentialManager.Username;
@@ -65,7 +65,7 @@ namespace SteamPipeForUnity.Editor
             string vdfPath;
             try
             {
-                SteamVDFGenerator.GenerateAppBuildVDF(config, out vdfPath);
+                SteamVDFGenerator.GenerateAppBuildVDF(config, out vdfPath, preview);
             }
             catch (Exception e)
             {
@@ -77,7 +77,7 @@ namespace SteamPipeForUnity.Editor
             }
 
             uploadProgress = 0.2f;
-            uploadStatus = "開始上傳至 Steam...";
+            uploadStatus = preview ? "開始測試掃描（Preview 模式）..." : "開始上傳至 Steam...";
 
             string loginCommand = string.IsNullOrWhiteSpace(steamGuardCode)
                 ? $"+login {username} {password}"
@@ -85,7 +85,7 @@ namespace SteamPipeForUnity.Editor
 
             string arguments = $"{loginCommand} +run_app_build \"{vdfPath}\" +quit";
 
-            Debug.Log($"開始上傳: App ID {config.appID}");
+            Debug.Log(preview ? $"[測試模式] 掃描但不上傳: App ID {config.appID}" : $"開始上傳: App ID {config.appID}");
             Debug.Log($"VDF 路徑: {vdfPath}");
 
             try
@@ -130,17 +130,19 @@ namespace SteamPipeForUnity.Editor
                     EditorApplication.delayCall += () =>
                     {
                         isUploading = false;
-                        
+
                         if (exitCode == 0 || exitCode == 7)
                         {
                             uploadProgress = 1f;
-                            uploadStatus = "上傳完成";
-                            Debug.Log("上傳成功！");
-                            onComplete?.Invoke(true, "上傳成功");
+                            uploadStatus = preview ? "測試掃描完成（未實際上傳）" : "上傳完成";
+                            Debug.Log(preview ? "測試掃描成功（Preview 模式，未實際上傳）" : "上傳成功！");
+                            onComplete?.Invoke(true, uploadStatus);
                         }
                         else
                         {
-                            uploadStatus = $"上傳失敗 (退出碼: {exitCode})";
+                            uploadStatus = preview
+                                ? $"測試掃描失敗 (退出碼: {exitCode})"
+                                : $"上傳失敗 (退出碼: {exitCode})";
                             Debug.LogError(uploadStatus);
                             onComplete?.Invoke(false, uploadStatus);
                         }
@@ -225,8 +227,8 @@ namespace SteamPipeForUnity.Editor
             {
                 if (!string.IsNullOrEmpty(uploadStatus))
                 {
-                    MessageType messageType = uploadStatus.Contains("成功") 
-                        ? MessageType.Info 
+                    MessageType messageType = uploadStatus.Contains("成功")
+                        ? MessageType.Info
                         : uploadStatus.Contains("失敗") || uploadStatus.Contains("錯誤")
                             ? MessageType.Error
                             : MessageType.None;
